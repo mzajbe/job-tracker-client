@@ -170,8 +170,20 @@ export const mockData = [
   },
 ]
 
-// Function to calculate application statistics
+// Cache for application statistics
+let statsCache = null
+let lastStatsUpdate = null
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+// Function to calculate application statistics with caching
 export function getApplicationStats(applications) {
+  const now = Date.now()
+  
+  // Return cached stats if they exist and are not expired
+  if (statsCache && lastStatsUpdate && (now - lastStatsUpdate < CACHE_DURATION)) {
+    return statsCache
+  }
+
   const stats = {
     total: applications.length,
     applied: 0,
@@ -201,5 +213,37 @@ export function getApplicationStats(applications) {
     }
   })
 
+  // Update cache
+  statsCache = stats
+  lastStatsUpdate = now
+
   return stats
+}
+
+// Memoized filter functions
+const filterCache = new Map()
+
+export function getFilteredApplications(applications, filters) {
+  const cacheKey = JSON.stringify(filters)
+  
+  if (filterCache.has(cacheKey)) {
+    return filterCache.get(cacheKey)
+  }
+
+  const filtered = applications.filter(app => {
+    return Object.entries(filters).every(([key, value]) => {
+      if (!value) return true
+      return app[key] === value
+    })
+  })
+
+  filterCache.set(cacheKey, filtered)
+  return filtered
+}
+
+// Clear cache when data changes
+export function clearCache() {
+  statsCache = null
+  lastStatsUpdate = null
+  filterCache.clear()
 }

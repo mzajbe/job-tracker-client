@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { ArrowUpDown, Download, Filter, MoreHorizontal, PlusCircle, Search } from "lucide-react"
 import Link from "next/link"
 
@@ -28,34 +28,49 @@ export default function ApplicationsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedApplication, setSelectedApplication] = useState(null)
 
-  // Filter and sort applications
-  const filteredApplications = mockData
-    .filter((app) => {
-      const matchesSearch =
-        app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.position.toLowerCase().includes(searchTerm.toLowerCase())
+  // Memoize filtered and sorted applications
+  const filteredApplications = useMemo(() => {
+    return mockData
+      .filter((app) => {
+        const matchesSearch =
+          app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.position.toLowerCase().includes(searchTerm.toLowerCase())
 
-      const matchesStatus = statusFilter === "all" || app.status === statusFilter
+        const matchesStatus = statusFilter === "all" || app.status === statusFilter
 
-      return matchesSearch && matchesStatus
-    })
-    .sort((a, b) => {
-      if (sortBy === "dateDesc") {
-        return new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
-      } else if (sortBy === "dateAsc") {
-        return new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime()
-      } else if (sortBy === "company") {
-        return a.company.localeCompare(b.company)
-      } else if (sortBy === "status") {
-        return a.status.localeCompare(b.status)
-      }
-      return 0
-    })
+        return matchesSearch && matchesStatus
+      })
+      .sort((a, b) => {
+        if (sortBy === "dateDesc") {
+          return new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+        } else if (sortBy === "dateAsc") {
+          return new Date(a.dateApplied).getTime() - new Date(b.dateApplied).getTime()
+        } else if (sortBy === "company") {
+          return a.company.localeCompare(b.company)
+        } else if (sortBy === "status") {
+          return a.status.localeCompare(b.status)
+        }
+        return 0
+      })
+  }, [searchTerm, statusFilter, sortBy])
 
-  const handleEdit = (application) => {
+  // Memoize handlers
+  const handleEdit = useCallback((application) => {
     setSelectedApplication(application)
     setIsDialogOpen(true)
-  }
+  }, [])
+
+  const handleSearch = useCallback((e) => {
+    setSearchTerm(e.target.value)
+  }, [])
+
+  const handleStatusFilter = useCallback((value) => {
+    setStatusFilter(value)
+  }, [])
+
+  const handleSort = useCallback((value) => {
+    setSortBy(value)
+  }, [])
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -99,7 +114,7 @@ export default function ApplicationsPage() {
               placeholder="Search applications..."
               className="w-full pl-8"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
             />
           </div>
           <DropdownMenu>
@@ -112,15 +127,15 @@ export default function ApplicationsPage() {
             <DropdownMenuContent align="end" className="w-[200px]">
               <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setStatusFilter("all")}>All Applications</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("Applied")}>Applied</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("Interview")}>Interview</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("Offer")}>Offer</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("Rejected")}>Rejected</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("On Hold")}>On Hold</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilter("all")}>All Applications</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilter("Applied")}>Applied</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilter("Interview")}>Interview</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilter("Offer")}>Offer</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilter("Rejected")}>Rejected</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusFilter("On Hold")}>On Hold</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Select defaultValue="dateDesc" onValueChange={(value) => setSortBy(value)}>
+          <Select defaultValue="dateDesc" onValueChange={handleSort}>
             <SelectTrigger className="h-9 w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
